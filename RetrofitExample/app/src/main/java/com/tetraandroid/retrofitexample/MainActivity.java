@@ -2,13 +2,14 @@ package com.tetraandroid.retrofitexample;
 
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
-import android.widget.TextView;
-import android.widget.Toast;
+import android.util.Log;
 
 import com.tetraandroid.retrofitexample.http.TwitchAPI;
 import com.tetraandroid.retrofitexample.http.apimodel.Top;
 import com.tetraandroid.retrofitexample.http.apimodel.Twitch;
 import com.tetraandroid.retrofitexample.root.App;
+
+import java.util.List;
 
 import javax.inject.Inject;
 
@@ -18,6 +19,9 @@ import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.Function;
 import io.reactivex.schedulers.Schedulers;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -25,7 +29,6 @@ public class MainActivity extends AppCompatActivity {
     TwitchAPI twitchAPI;
 
     private final String KEY = "taftdv10sphi8xnpfk6n7j82au9gur";
-    private TextView tv;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,8 +37,25 @@ public class MainActivity extends AppCompatActivity {
 
         ((App) getApplication()).getComponent().inject(this);
 
-        tv = (TextView) findViewById(R.id.tv);
-        final StringBuilder sb = new StringBuilder();
+        Call<Twitch> call = twitchAPI.getTopGames(KEY);
+
+        call.enqueue(new Callback<Twitch>() {
+            @Override
+            public void onResponse(Call<Twitch> call, Response<Twitch> response) {
+                List<Top> gameList = response.body().getTop();
+
+                for (Top top : gameList) {
+                    System.out.println(top.getGame().getName());
+                }
+            }
+
+            @Override
+            public void onFailure(Call<Twitch> call, Throwable t) {
+                t.printStackTrace();
+            }
+        });
+
+
         twitchAPI.getTopGamesObservable(KEY)
                 .flatMap(new Function<Twitch, ObservableSource<Top>>() {
                     @Override
@@ -59,7 +79,8 @@ public class MainActivity extends AppCompatActivity {
 
                     @Override
                     public void onNext(String s) {
-                        tv.setText(sb.append("game name is : " + s + "\n").toString());
+                        Log.e("Main", "game is : " + s);
+
                     }
 
                     @Override
@@ -69,8 +90,7 @@ public class MainActivity extends AppCompatActivity {
 
                     @Override
                     public void onComplete() {
-                        Toast.makeText(MainActivity.this, "end loading from Twitch API", Toast.LENGTH_SHORT).show();
-
+                        Log.e("Main", "loading finished!");
                     }
                 });
     }
